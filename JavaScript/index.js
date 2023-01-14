@@ -1,53 +1,103 @@
-class ValidaCpf {
-  constructor(cpfEnviado) {
-    Object.defineProperty(this, "cpflimpo", {
-      writable: false,
-      enumerable: true,
-      configurable: false,
-      value: cpfEnviado.replace(/\D+/g, ""),
+class Validaform {
+  constructor() {
+    this.formulario = document.querySelector(".form");
+    this.evento();
+  }
+
+  evento() {
+    this.formulario.addEventListener("submit", (e) => {
+      this.handleSubmit(e);
     });
   }
 
-  eSequencia() {
-    return this.cpflimpo.charAt(0).repeat(11) === this.cpflimpo;
+  handleSubmit(e) {
+    e.preventDefault();
+    const campos = this.checaCampos();
+    const senhas = this.checaSenhas();
+
+    if (campos && senhas) {
+      alert("enviado");
+      this.formulario.submit();
+    }
   }
 
-  geraCpfnovo() {
-    const cpfBranco = this.cpflimpo.slice(0, -2);
-    const digito1 = this.geraDigito(cpfBranco);
-    const digito2 = this.geraDigito(cpfBranco + digito1);
-    this.novoCpf = cpfBranco + digito1 + digito2;
-  }
+  checaSenhas() {
+    let valid = true;
+    const senha = this.formulario.querySelector(".senha");
+    const repetirSenha = this.formulario.querySelector(".repetir");
 
-  geraDigito(cpfBranco) {
-    let total = 0;
-    let reverso = cpfBranco.length + 1;
-
-    for (let stringNu of cpfBranco) {
-      total += reverso * Number(stringNu);
-      reverso--;
+    if (senha.value !== repetirSenha.value) {
+      this.criaErro(senha, `Campos senha e repitir senha precisam ser iguais`);
+      this.criaErro(
+        repetirSenha,
+        `Campos senha e repitir senha precisam ser iguais`
+      );
     }
 
-    const digito = 11 - (total % 11);
-    return digito <= 9 ? digito : "0";
+    if (senha.value.length < 6 || senha.value.length > 12) {
+      valid = false;
+      this.criaErro(senha, `A senha precisam ter entre 6 a 12 caracteres`);
+    }
+
+    return valid;
   }
 
-  valida() {
-    if (!this.cpflimpo) return false;
-    if (typeof this.cpflimpo !== "string") return false;
-    if (this.cpflimpo.length !== 11) return false;
-    if (this.eSequencia()) return false;
-    this.geraCpfnovo();
+  checaCampos() {
+    let valid = true;
 
-    return this.novoCpf === this.cpflimpo;
+    for (let errorText of this.formulario.querySelectorAll(".error-text")) {
+      errorText.remove();
+    }
+
+    for (let campo of this.formulario.querySelectorAll(".validar")) {
+      const label = campo.previousElementSibling.innerText;
+      if (!campo.value) {
+        this.criaErro(campo, `O campo ${label} não pode estar em branco.`);
+        valid = false;
+      }
+
+      if (campo.classList.contains("cpf")) {
+        if (!this.cpfValida(campo)) valid = false;
+      }
+      if (campo.classList.contains("usuario")) {
+        if (!this.usuarioValida(campo)) valid = false;
+      }
+    }
+    return valid;
+  }
+
+  usuarioValida(campo) {
+    const usuario = campo.value;
+    let valid = true;
+    if (usuario.length < 3 || usuario.length > 12) {
+      this.criaErro(campo, "O usuario precisa ter entre 3 a 12 caracteres");
+      valid = false;
+    }
+    if (!usuario.match(/^[a-zA-Z0-9]+$/g)) {
+      this.criaErro(
+        campo,
+        "Nome de usuario precisa conter a apenas letras e números"
+      );
+      valid = false;
+    }
+    return valid;
+  }
+
+  cpfValida(campo) {
+    const cpf = new ValidaCpf(campo.value);
+
+    if (!cpf.valida()) {
+      this.criaErro(campo, "CPF invalido");
+    }
+    return true;
+  }
+
+  criaErro(campo, msg) {
+    const div = document.createElement("div");
+    div.innerHTML = msg;
+    div.classList.add("error-text");
+    campo.insertAdjacentElement("afterend", div);
   }
 }
 
-let cpfValida = new ValidaCpf("070.987.720-03");
-console.log(cpfValida.valida());
-
-if (cpfValida.valida()) {
-  console.log("Cpf válido");
-} else {
-  console.log("Cpf inválido");
-}
+const valida = new Validaform();
